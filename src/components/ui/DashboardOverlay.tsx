@@ -49,7 +49,8 @@ export const DashboardOverlay: React.FC = () => {
 
   const [expandedReasoningId, setExpandedReasoningId] = useState<string | null>(null);
 
-  // Legal Reasoning Modal State
+  // Legal Reasoning Modal & Quick Prompt State
+  const [promptInput, setPromptInput] = useState<string>('');
   const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
   const [modalTargetFlag, setModalTargetFlag] = useState<{
     clause?: string;
@@ -57,6 +58,8 @@ export const DashboardOverlay: React.FC = () => {
     deptId?: string;
     flagId?: string;
     reasoning?: string;
+    customQuery?: string;
+    autoTrigger?: boolean;
   }>({});
 
   // Filtered departments for quick list or table
@@ -260,13 +263,53 @@ export const DashboardOverlay: React.FC = () => {
         </div>
       </header>
 
-      {/* FILTER & SEARCH SUB-BAR */}
+      {/* FILTER, SEARCH & AI PROMPT SUB-BAR */}
       <div className="pointer-events-auto mt-3 flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800/60">
-        <div className="flex items-center gap-2 flex-1 max-w-md bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
+        {/* Interactive AI Prompt Input Bar */}
+        <div className="flex items-center gap-2 flex-1 min-w-[280px] max-w-lg bg-slate-950/90 px-3 py-1.5 rounded-xl border border-sky-500/40 shadow-inner">
+          <Sparkles className="w-4 h-4 text-sky-400 shrink-0 animate-pulse" />
+          <input
+            type="text"
+            placeholder="Ask AI Prompt: e.g. Analyze GDPR liability cap or custom query..."
+            value={promptInput}
+            onChange={(e) => setPromptInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && promptInput.trim()) {
+                e.preventDefault();
+                setModalTargetFlag({
+                  customQuery: promptInput,
+                  autoTrigger: true,
+                });
+                setIsLegalModalOpen(true);
+              }
+            }}
+            className="bg-transparent text-xs text-slate-100 placeholder-slate-400 focus:outline-none w-full font-mono"
+          />
+          <button
+            onClick={() => {
+              if (promptInput.trim()) {
+                setModalTargetFlag({
+                  customQuery: promptInput,
+                  autoTrigger: true,
+                });
+                setIsLegalModalOpen(true);
+              } else {
+                setModalTargetFlag({});
+                setIsLegalModalOpen(true);
+              }
+            }}
+            className="px-3 py-1 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold text-[11px] flex items-center gap-1 shrink-0 transition-all shadow-sm"
+          >
+            <span>Ask AI</span>
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 min-w-[200px] max-w-xs bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
-            placeholder="Search departments, clauses, rules, or contracts..."
+            placeholder="Search departments/flags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-full font-mono"
@@ -610,6 +653,8 @@ export const DashboardOverlay: React.FC = () => {
         initialDepartmentId={modalTargetFlag.deptId}
         initialFlagId={modalTargetFlag.flagId}
         existingReasoning={modalTargetFlag.reasoning}
+        initialCustomQuery={modalTargetFlag.customQuery}
+        autoTrigger={modalTargetFlag.autoTrigger}
       />
     </div>
   );

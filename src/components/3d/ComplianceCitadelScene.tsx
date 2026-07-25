@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { CameraControls, Grid, Stars, Float } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber';
+import { CameraControls, Grid, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAuditStore } from '../../store/useAuditStore';
 import { BuildingBlock } from './BuildingBlock';
@@ -151,20 +151,6 @@ export const ComplianceCitadelScene: React.FC = () => {
 
         {/* Atmospheric Particles & Background Stars */}
         <Stars radius={40} depth={50} count={2500} factor={4} saturation={0} fade speed={1} />
-
-        {/* Floating Data Dust Elements */}
-        <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
-          <group position={[0, 8, 0]}>
-            <mesh position={[-6, 2, -6]}>
-              <octahedronGeometry args={[0.3]} />
-              <meshBasicMaterial color="#38BDF8" wireframe transparent opacity={0.4} />
-            </mesh>
-            <mesh position={[6, 3, 6]}>
-              <octahedronGeometry args={[0.4]} />
-              <meshBasicMaterial color="#818CF8" wireframe transparent opacity={0.4} />
-            </mesh>
-          </group>
-        </Float>
 
         {/* Ground Base Platform */}
         <CitadelPlaza />

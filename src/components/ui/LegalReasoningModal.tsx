@@ -27,6 +27,8 @@ interface LegalReasoningModalProps {
   initialDepartmentId?: string;
   initialFlagId?: string;
   existingReasoning?: string;
+  initialCustomQuery?: string;
+  autoTrigger?: boolean;
 }
 
 export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
@@ -37,6 +39,8 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
   initialDepartmentId,
   initialFlagId,
   existingReasoning = '',
+  initialCustomQuery = '',
+  autoTrigger = false,
 }) => {
   const departments = useAuditStore((state) => state.departments);
   const addComplianceFlag = useAuditStore((state) => state.addComplianceFlag);
@@ -50,7 +54,7 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
   const [category, setCategory] = useState<string>('Contractual Compliance');
   const [severity, setSeverity] = useState<RiskLevel>('HIGH');
   const [riskScore, setRiskScore] = useState<number>(75);
-  const [customQuery, setCustomQuery] = useState<string>('');
+  const [customQuery, setCustomQuery] = useState<string>(initialCustomQuery);
 
   const [reasoningResult, setReasoningResult] = useState<string>(existingReasoning);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -58,21 +62,15 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (initialDepartmentId) setSelectedDeptId(initialDepartmentId);
-    if (initialClause) setContractClause(initialClause);
-    if (initialRule) setViolatedRule(initialRule);
-    if (existingReasoning) {
-      setReasoningResult(existingReasoning);
-      setModeUsed('custom');
-    }
-  }, [initialDepartmentId, initialClause, initialRule, existingReasoning, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleGenerateAIReasoning = async () => {
+  const handleGenerateAIReasoningWithQuery = async (
+    queryOverride?: string,
+    clauseOverride?: string
+  ) => {
     setIsLoading(true);
     setSaveSuccess(null);
+
+    const activeQuery = queryOverride !== undefined ? queryOverride : customQuery;
+    const activeClause = clauseOverride !== undefined ? clauseOverride : contractClause;
 
     const deptObj = departments.find((d) => d.id === selectedDeptId);
 
@@ -81,11 +79,11 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clause: contractClause || 'Standard Corporate Governance & Data Clause',
+          clause: activeClause || activeQuery || 'Standard Corporate Governance & Data Clause',
           rule: violatedRule || 'Enterprise Risk Baseline Standard',
           department: deptObj?.name || 'Enterprise Unit',
           category,
-          customQuery,
+          customQuery: activeQuery,
         }),
       });
 
@@ -99,7 +97,7 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
       // Fallback
       setReasoningResult(`<reasoning>
 1. Legal Statutory Baseline: Statutory analysis under ${violatedRule || 'applicable regulations'}.
-2. Operational Divergence: Subject clause "${contractClause || 'Contract Clause'}" presents legal liability exposure.
+2. Operational Divergence: Subject clause "${activeClause || activeQuery || 'Contract Clause'}" presents legal liability exposure.
 3. Financial Impact: Unmitigated risk of statutory fine or contractual litigation.
 4. Recommended Remediation: Execute clarifying addendum and log formal compliance exception token.
 </reasoning>`);
@@ -108,6 +106,29 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
       setIsLoading(false);
     }
   };
+
+  const handleGenerateAIReasoning = () => {
+    handleGenerateAIReasoningWithQuery();
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialDepartmentId) setSelectedDeptId(initialDepartmentId);
+      if (initialClause) setContractClause(initialClause);
+      if (initialRule) setViolatedRule(initialRule);
+      if (initialCustomQuery) setCustomQuery(initialCustomQuery);
+      
+      if (existingReasoning) {
+        setReasoningResult(existingReasoning);
+        setModeUsed('custom');
+      } else if (autoTrigger || initialCustomQuery) {
+        handleGenerateAIReasoningWithQuery(
+          initialCustomQuery || customQuery,
+          initialClause || contractClause
+        );
+      }
+    }
+  }, [isOpen, initialDepartmentId, initialClause, initialRule, initialCustomQuery, existingReasoning]);
 
   const handleCreateTemplate = () => {
     setReasoningResult(`<reasoning>
@@ -177,6 +198,8 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
       </div>
     );
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
@@ -282,13 +305,52 @@ export const LegalReasoningModal: React.FC<LegalReasoningModalProps> = ({
                 <Bot className="w-3.5 h-3.5 text-purple-400" />
                 Specific Legal Reasoning Prompt / Inquiry
               </label>
-              <input
-                type="text"
-                value={customQuery}
-                onChange={(e) => setCustomQuery(e.target.value)}
-                placeholder="e.g. What is the jurisdiction risk under Singapore international arbitration rules?"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={customQuery}
+                  onChange={(e) => setCustomQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleGenerateAIReasoning();
+                    }
+                  }}
+                  placeholder="e.g. What is the jurisdiction risk under Singapore international arbitration rules?"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 pr-20 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono"
+                />
+                <button
+                  onClick={handleGenerateAIReasoning}
+                  disabled={isLoading}
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium text-[11px] flex items-center gap-1 transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-3 h-3" />
+                  Ask AI
+                </button>
+              </div>
+
+              {/* Quick Preset Prompts */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-[10px] text-slate-500 font-mono">Quick Prompts:</span>
+                {[
+                  'GDPR Data Retention Risk',
+                  'Limitation of Liability Cap',
+                  'SOC 2 Type II Controls',
+                  'Arbitration Jurisdiction Risk',
+                  'Vendor IP Ownership Rights',
+                ].map((promptText) => (
+                  <button
+                    key={promptText}
+                    onClick={() => {
+                      setCustomQuery(promptText);
+                      handleGenerateAIReasoningWithQuery(promptText);
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 hover:bg-sky-950 text-slate-300 hover:text-sky-300 border border-slate-700 hover:border-sky-700 transition-colors"
+                  >
+                    + {promptText}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

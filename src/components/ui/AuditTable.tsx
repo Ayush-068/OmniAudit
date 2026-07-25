@@ -35,6 +35,8 @@ export const AuditTable: React.FC = () => {
     deptId?: string;
     flagId?: string;
     reasoning?: string;
+    customQuery?: string;
+    autoTrigger?: boolean;
   }>({});
 
   // Flatten all flags from all departments
@@ -257,6 +259,8 @@ export const AuditTable: React.FC = () => {
         initialDepartmentId={modalTargetFlag.deptId}
         initialFlagId={modalTargetFlag.flagId}
         existingReasoning={modalTargetFlag.reasoning}
+        initialCustomQuery={modalTargetFlag.customQuery}
+        autoTrigger={modalTargetFlag.autoTrigger}
       />
     </div>
   );

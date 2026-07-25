@@ -61,47 +61,24 @@ export const BuildingBlock: React.FC<BuildingBlockProps> = ({ department }) => {
     const time = state.clock.getElapsedTime();
 
     if (meshRef.current) {
-      // Hover Bobbing and subtle rotation
-      if (isHovered || isSelected) {
-        const hoverLift = Math.sin(time * 3) * 0.15 + (isSelected ? 0.3 : 0.1);
-        meshRef.current.position.y = THREE.MathUtils.lerp(
-          meshRef.current.position.y,
-          posY + hoverLift,
-          0.1
-        );
-        meshRef.current.rotation.y = THREE.MathUtils.lerp(
-          meshRef.current.rotation.y,
-          Math.sin(time * 0.8) * 0.05,
-          0.05
-        );
-      } else {
-        meshRef.current.position.y = THREE.MathUtils.lerp(
-          meshRef.current.position.y,
-          posY,
-          0.1
-        );
-        meshRef.current.rotation.y = THREE.MathUtils.lerp(
-          meshRef.current.rotation.y,
-          0,
-          0.1
-        );
+      // Keep blocks completely fixed and stable without rotation or bobbing
+      meshRef.current.position.y = posY;
+      meshRef.current.rotation.y = 0;
+
+      if (mainBoxRef.current) {
+        mainBoxRef.current.scale.set(1, 1, 1);
       }
 
-      // Critical Risk pulse & vertex distortion / scale pulse
-      if (department.riskLevel === 'CRITICAL' && mainBoxRef.current) {
-        const pulse = Math.sin(time * 6) * 0.04;
-        mainBoxRef.current.scale.set(1 + pulse, 1 + Math.abs(pulse * 0.8), 1 + pulse);
-
-        if (materialRef.current) {
-          const emissiveIntensity = (Math.sin(time * 5) + 1) * 0.8 + 0.3;
-          materialRef.current.emissiveIntensity = emissiveIntensity;
-        }
+      // Smooth lighting & glow highlights only
+      if (department.riskLevel === 'CRITICAL' && materialRef.current) {
+        const emissiveIntensity = (Math.sin(time * 3) + 1) * 0.4 + 0.3;
+        materialRef.current.emissiveIntensity = emissiveIntensity;
 
         if (glowMaterialRef.current) {
-          glowMaterialRef.current.opacity = (Math.sin(time * 5) + 1) * 0.25 + 0.1;
+          glowMaterialRef.current.opacity = (Math.sin(time * 3) + 1) * 0.15 + 0.1;
         }
       } else if (department.riskLevel === 'HIGH' && materialRef.current) {
-        const emissiveIntensity = (Math.sin(time * 3) + 1) * 0.3 + 0.2;
+        const emissiveIntensity = (Math.sin(time * 2) + 1) * 0.2 + 0.2;
         materialRef.current.emissiveIntensity = emissiveIntensity;
       } else if (materialRef.current) {
         const baseIntensity = isSelected ? 0.6 : isHovered ? 0.4 : 0.2;
