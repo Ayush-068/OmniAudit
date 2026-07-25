@@ -52,6 +52,7 @@ export interface AuditStoreState {
   setHoveredDepartment: (id: string | null) => void;
   verifyFlag: (deptId: string, flagId: string) => void;
   dismissFlag: (deptId: string, flagId: string) => void;
+  updateFlagReasoning: (deptId: string, flagId: string, newReasoning: string) => void;
   addComplianceFlag: (deptId: string, flag: Omit<ComplianceFlag, 'flag_id' | 'status' | 'timestamp'>) => void;
   setSearchQuery: (query: string) => void;
   setRiskFilter: (filter: RiskLevel | 'ALL') => void;

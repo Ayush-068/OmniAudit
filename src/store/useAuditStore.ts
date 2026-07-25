@@ -331,6 +331,31 @@ export const useAuditStore = create<AuditStoreState>((set, get) => ({
     });
   },
 
+  updateFlagReasoning: (deptId: string, flagId: string, newReasoning: string) => {
+    set((state) => {
+      const updatedDepartments = state.departments.map((dept) => {
+        if (dept.id !== deptId) return dept;
+        const updatedFlags = dept.flags.map((flag) =>
+          flag.flag_id === flagId ? { ...flag, reasoning_chain: newReasoning } : flag
+        );
+        return {
+          ...dept,
+          flags: updatedFlags,
+        };
+      });
+
+      const updatedSelected =
+        state.selectedDepartment?.id === deptId
+          ? updatedDepartments.find((d) => d.id === deptId) || null
+          : state.selectedDepartment;
+
+      return {
+        departments: updatedDepartments,
+        selectedDepartment: updatedSelected,
+      };
+    });
+  },
+
   addComplianceFlag: (deptId: string, flag) => {
     const newFlag = {
       ...flag,

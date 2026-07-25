@@ -9,9 +9,13 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Scale,
+  Edit3,
+  PlusCircle
 } from 'lucide-react';
 import { useAuditStore } from '../../store/useAuditStore';
 import { RiskLevel } from '../../types/audit';
+import { LegalReasoningModal } from './LegalReasoningModal';
 
 export const AuditTable: React.FC = () => {
   const departments = useAuditStore((state) => state.departments);
@@ -22,6 +26,16 @@ export const AuditTable: React.FC = () => {
 
   const [expandedFlagId, setExpandedFlagId] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
+
+  // Legal Reasoning Modal State
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
+  const [modalTargetFlag, setModalTargetFlag] = useState<{
+    clause?: string;
+    rule?: string;
+    deptId?: string;
+    flagId?: string;
+    reasoning?: string;
+  }>({});
 
   // Flatten all flags from all departments
   const allFlags = departments.flatMap((dept) =>
@@ -55,7 +69,18 @@ export const AuditTable: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 font-mono">Severity Filter:</span>
+            <button
+              onClick={() => {
+                setModalTargetFlag({});
+                setIsLegalModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md transition-all border border-sky-400/30"
+            >
+              <Scale className="w-4 h-4 text-sky-200" />
+              <span>Ask Legal AI Reasoning</span>
+            </button>
+
+            <span className="text-xs text-slate-400 font-mono hidden sm:inline">Severity Filter:</span>
             <select
               value={filterSeverity}
               onChange={(e) => setFilterSeverity(e.target.value)}
@@ -147,13 +172,30 @@ export const AuditTable: React.FC = () => {
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
+                              onClick={() => {
+                                setModalTargetFlag({
+                                  clause: flag.contract_clause,
+                                  rule: flag.violated_rule,
+                                  deptId: flag.deptId,
+                                  flagId: flag.flag_id,
+                                  reasoning: flag.reasoning_chain,
+                                });
+                                setIsLegalModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded bg-sky-950 hover:bg-sky-900 border border-sky-800 text-sky-300 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                            >
+                              <Edit3 className="w-3 h-3 text-sky-400" />
+                              Ask AI / Edit
+                            </button>
+
+                            <button
                               onClick={() =>
                                 setExpandedFlagId(isExpanded ? null : flag.flag_id)
                               }
                               className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-mono flex items-center gap-1"
                             >
                               <Sparkles className="w-3 h-3" />
-                              {isExpanded ? 'Hide <reasoning>' : 'View <reasoning>'}
+                              {isExpanded ? 'Hide' : 'View'}
                               {isExpanded ? (
                                 <ChevronUp className="w-3 h-3" />
                               ) : (
@@ -205,6 +247,17 @@ export const AuditTable: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Legal Reasoning Modal */}
+      <LegalReasoningModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialClause={modalTargetFlag.clause}
+        initialRule={modalTargetFlag.rule}
+        initialDepartmentId={modalTargetFlag.deptId}
+        initialFlagId={modalTargetFlag.flagId}
+        existingReasoning={modalTargetFlag.reasoning}
+      />
     </div>
   );
 };

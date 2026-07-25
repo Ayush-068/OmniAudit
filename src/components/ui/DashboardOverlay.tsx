@@ -21,9 +21,13 @@ import {
   Filter,
   Check,
   RefreshCw,
+  Scale,
+  PlusCircle,
+  Edit3
 } from 'lucide-react';
 import { useAuditStore } from '../../store/useAuditStore';
 import { RiskLevel, ComplianceFlag } from '../../types/audit';
+import { LegalReasoningModal } from './LegalReasoningModal';
 
 export const DashboardOverlay: React.FC = () => {
   const departments = useAuditStore((state) => state.departments);
@@ -44,6 +48,16 @@ export const DashboardOverlay: React.FC = () => {
   const metrics = getMetrics();
 
   const [expandedReasoningId, setExpandedReasoningId] = useState<string | null>(null);
+
+  // Legal Reasoning Modal State
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
+  const [modalTargetFlag, setModalTargetFlag] = useState<{
+    clause?: string;
+    rule?: string;
+    deptId?: string;
+    flagId?: string;
+    reasoning?: string;
+  }>({});
 
   // Filtered departments for quick list or table
   const filteredDepartments = departments.filter((dept) => {
@@ -189,6 +203,17 @@ export const DashboardOverlay: React.FC = () => {
 
         {/* View Mode Switcher & Controls */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setModalTargetFlag({});
+              setIsLegalModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md shadow-sky-950/40 transition-all border border-sky-400/30"
+          >
+            <Scale className="w-3.5 h-3.5 text-sky-200" />
+            <span>Ask Legal Reasoning</span>
+          </button>
+
           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setViewMode('3D')}
@@ -377,10 +402,18 @@ export const DashboardOverlay: React.FC = () => {
                 <ShieldAlert className="w-4 h-4 text-rose-400" />
                 Contract Compliance Flags ({selectedDepartment.flags.length})
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
-                Score:{' '}
-                <strong className="text-cyan-400">{selectedDepartment.score}%</strong>
-              </span>
+              <button
+                onClick={() => {
+                  setModalTargetFlag({
+                    deptId: selectedDepartment.id,
+                  });
+                  setIsLegalModalOpen(true);
+                }}
+                className="flex items-center gap-1 text-[10px] font-semibold text-sky-400 hover:text-sky-300 bg-sky-950/80 px-2.5 py-1 rounded-lg border border-sky-800 transition-colors"
+              >
+                <PlusCircle className="w-3 h-3 text-sky-400" />
+                + New Flag / Reasoning
+              </button>
             </div>
 
             {/* Scrollable Compliance Flags List */}
@@ -447,25 +480,45 @@ export const DashboardOverlay: React.FC = () => {
                       {flag.violated_rule}
                     </div>
 
-                    {/* Structured Reasoning Chain Toggle */}
-                    <div className="mt-2">
+                    {/* Structured Reasoning Chain Toggle & Edit Buttons */}
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <button
                         onClick={() =>
                           setExpandedReasoningId(
                             expandedReasoningId === flag.flag_id ? null : flag.flag_id
                           )
                         }
-                        className="flex items-center gap-1 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors mb-2"
+                        className="flex items-center gap-1 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors"
                       >
                         <Sparkles className="w-3 h-3" />
                         {expandedReasoningId === flag.flag_id
                           ? 'Hide Legal Reasoning Chain'
-                          : 'View Legal Reasoning Chain (<reasoning>)'}
+                          : 'View Reasoning (<reasoning>)'}
                       </button>
 
-                      {expandedReasoningId === flag.flag_id &&
-                        renderFormattedReasoning(flag.reasoning_chain)}
+                      <button
+                        onClick={() => {
+                          setModalTargetFlag({
+                            clause: flag.contract_clause,
+                            rule: flag.violated_rule,
+                            deptId: selectedDepartment.id,
+                            flagId: flag.flag_id,
+                            reasoning: flag.reasoning_chain,
+                          });
+                          setIsLegalModalOpen(true);
+                        }}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-sky-300 hover:text-white bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800 transition-colors"
+                      >
+                        <Edit3 className="w-3 h-3 text-sky-400" />
+                        Ask AI / Edit Legal Reasoning
+                      </button>
                     </div>
+
+                    {expandedReasoningId === flag.flag_id && (
+                      <div className="mt-2">
+                        {renderFormattedReasoning(flag.reasoning_chain)}
+                      </div>
+                    )}
 
                     {/* Action Buttons: Verify / Dismiss */}
                     {flag.status === 'UNVERIFIED' && (
@@ -547,6 +600,17 @@ export const DashboardOverlay: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* Interactive Legal Reasoning Modal */}
+      <LegalReasoningModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialClause={modalTargetFlag.clause}
+        initialRule={modalTargetFlag.rule}
+        initialDepartmentId={modalTargetFlag.deptId}
+        initialFlagId={modalTargetFlag.flagId}
+        existingReasoning={modalTargetFlag.reasoning}
+      />
     </div>
   );
 };
