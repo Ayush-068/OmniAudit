@@ -1,0 +1,6 @@
+{
+  "name": "OmniAudit Compliance Citadel",
+  "description": "Interactive 3D Risk Map and Compliance Audit Dashboard",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
